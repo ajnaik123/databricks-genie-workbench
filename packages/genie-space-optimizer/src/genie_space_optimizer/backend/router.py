@@ -31,6 +31,7 @@ def health_check(config: Dependencies.Config, ws: Dependencies.Client):
     cat = config.catalog or "main"
     sch = config.schema_name or "genie_optimization"
     fqn = f"{cat}.{sch}"
+    qfqn = f"`{cat}`.`{sch}`"
 
     sp_client_id = ws.config.client_id or os.getenv("DATABRICKS_CLIENT_ID", "")
     sp_ref = sp_client_id or "<service_principal_application_id>"
@@ -81,11 +82,11 @@ def health_check(config: Dependencies.Config, ws: Dependencies.Client):
 
     # ── Schema existence ────────────────────────────────────────────
     try:
-        spark.sql(f"DESCRIBE SCHEMA {fqn}")
+        spark.sql(f"DESCRIBE SCHEMA {qfqn}")
     except Exception as exc:
         exc_str = str(exc)
         if "SCHEMA_NOT_FOUND" in exc_str:
-            cmd = f"CREATE SCHEMA IF NOT EXISTS {fqn}"
+            cmd = f"CREATE SCHEMA IF NOT EXISTS {qfqn}"
             return HealthStatus(
                 healthy=False,
                 catalogExists=catalog_exists,
@@ -100,7 +101,7 @@ def health_check(config: Dependencies.Config, ws: Dependencies.Client):
                 **base,
             )
         if "PERMISSION_DENIED" in exc_str or "ACCESS_DENIED" in exc_str:
-            cmd = f"CREATE SCHEMA IF NOT EXISTS {fqn}"
+            cmd = f"CREATE SCHEMA IF NOT EXISTS {qfqn}"
             return HealthStatus(
                 healthy=False,
                 catalogExists=catalog_exists,
@@ -127,7 +128,7 @@ def health_check(config: Dependencies.Config, ws: Dependencies.Client):
     tables_ready = False
     try:
         df = spark.sql(
-            f"SHOW TABLES IN {fqn} LIKE 'genie_opt_*'"
+            f"SHOW TABLES IN {qfqn} LIKE 'genie_opt_*'"
         ).toPandas()
         tables_ready = len(df) >= 3
     except Exception as exc:
@@ -148,9 +149,9 @@ def health_check(config: Dependencies.Config, ws: Dependencies.Client):
             ),
             grantCommand=(
                 f"GRANT CREATE TABLE, CREATE VOLUME, USE SCHEMA, SELECT, MODIFY "
-                f"ON SCHEMA {fqn} TO `{sp_ref}`; "
+                f"ON SCHEMA {qfqn} TO `{sp_ref}`; "
                 f"GRANT READ_VOLUME, WRITE_VOLUME "
-                f"ON VOLUME {fqn}.app_artifacts TO `{sp_ref}`"
+                f"ON VOLUME {qfqn}.app_artifacts TO `{sp_ref}`"
             ),
             **base,
         )
@@ -158,7 +159,7 @@ def health_check(config: Dependencies.Config, ws: Dependencies.Client):
     # ── Table access ────────────────────────────────────────────────
     tables_accessible = False
     try:
-        spark.sql(f"SELECT 1 FROM {fqn}.genie_opt_runs LIMIT 1").collect()
+        spark.sql(f"SELECT 1 FROM {qfqn}.genie_opt_runs LIMIT 1").collect()
         tables_accessible = True
     except Exception as exc:
         exc_str = str(exc)
@@ -176,8 +177,8 @@ def health_check(config: Dependencies.Config, ws: Dependencies.Client):
                 ),
                 grantCommand=(
                     f"GRANT USE CATALOG ON CATALOG `{cat}` TO `{sp_ref}`; "
-                    f"GRANT USE SCHEMA, SELECT, MODIFY ON SCHEMA {fqn} TO `{sp_ref}`; "
-                    f"GRANT READ_VOLUME, WRITE_VOLUME ON VOLUME {fqn}.app_artifacts TO `{sp_ref}`"
+                    f"GRANT USE SCHEMA, SELECT, MODIFY ON SCHEMA {qfqn} TO `{sp_ref}`; "
+                    f"GRANT READ_VOLUME, WRITE_VOLUME ON VOLUME {qfqn}.app_artifacts TO `{sp_ref}`"
                 ),
                 **base,
             )
@@ -187,7 +188,7 @@ def health_check(config: Dependencies.Config, ws: Dependencies.Client):
     # ── Volume readiness ──────────────────────────────────────────────
     volume_ready = False
     try:
-        spark.sql(f"DESCRIBE VOLUME {fqn}.app_artifacts")
+        spark.sql(f"DESCRIBE VOLUME {qfqn}.app_artifacts")
         volume_ready = True
     except Exception as exc:
         exc_str = str(exc)
@@ -205,7 +206,7 @@ def health_check(config: Dependencies.Config, ws: Dependencies.Client):
                     f"Create it with the SQL command below, or re-run "
                     f"'make deploy WAREHOUSE_ID=...' which creates it automatically."
                 ),
-                grantCommand=f"CREATE VOLUME IF NOT EXISTS {fqn}.app_artifacts",
+                grantCommand=f"CREATE VOLUME IF NOT EXISTS {qfqn}.app_artifacts",
                 **base,
             )
         if "PERMISSION_DENIED" in exc_str or "ACCESS_DENIED" in exc_str:
@@ -221,7 +222,7 @@ def health_check(config: Dependencies.Config, ws: Dependencies.Client):
                     f"in {fqn}. Grant CREATE VOLUME permission, or create the "
                     f"volume manually with the command below."
                 ),
-                grantCommand=f"CREATE VOLUME IF NOT EXISTS {fqn}.app_artifacts",
+                grantCommand=f"CREATE VOLUME IF NOT EXISTS {qfqn}.app_artifacts",
                 **base,
             )
         _logger.debug("Health check: DESCRIBE VOLUME error: %s", exc_str[:200])
@@ -229,7 +230,7 @@ def health_check(config: Dependencies.Config, ws: Dependencies.Client):
 
     # ── Function/Prompt permission probe ────────────────────────────
     try:
-        spark.sql(f"SHOW FUNCTIONS IN {fqn} LIKE 'genie_opt_*'")
+        spark.sql(f"SHOW FUNCTIONS IN {qfqn} LIKE 'genie_opt_*'")
     except Exception as exc:
         exc_str = str(exc)
         if "PERMISSION_DENIED" in exc_str or "ACCESS_DENIED" in exc_str:
@@ -245,7 +246,7 @@ def health_check(config: Dependencies.Config, ws: Dependencies.Client):
                     f"Run the GRANT command below to fix."
                 ),
                 grantCommand=(
-                    f"GRANT CREATE FUNCTION, EXECUTE, MANAGE ON SCHEMA {fqn} TO `{sp_ref}`"
+                    f"GRANT CREATE FUNCTION, EXECUTE, MANAGE ON SCHEMA {qfqn} TO `{sp_ref}`"
                 ),
                 **base,
             )

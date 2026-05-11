@@ -91,7 +91,7 @@ def _ensure_volume(ws: WorkspaceClient, catalog: str, schema: str) -> None:
             raise RuntimeError(
                 f"Could not create volume {catalog}.{schema}.{_VOLUME_NAME}: {exc}. "
                 f"Create it manually with: CREATE VOLUME IF NOT EXISTS "
-                f"{catalog}.{schema}.{_VOLUME_NAME}"
+                f"`{catalog}`.`{schema}`.{_VOLUME_NAME}"
             ) from exc
     _volume_ensured = True
 

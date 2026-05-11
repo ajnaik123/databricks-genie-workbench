@@ -5452,7 +5452,9 @@ def _try_drop_prompt(fqn: str) -> bool:
         spark = SparkSession.getActiveSession()
         if spark is None:
             return False
-        spark.sql(f"DROP FUNCTION IF EXISTS {fqn}")
+        _parts = fqn.split(".")
+        _quoted = ".".join(f"`{p}`" for p in _parts) if len(_parts) == 3 else fqn
+        spark.sql(f"DROP FUNCTION IF EXISTS {_quoted}")
         logger.info("Dropped stale prompt function %s for re-creation", fqn)
         return True
     except Exception:

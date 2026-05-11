@@ -125,9 +125,13 @@ def _delta_query(sql: str, *, strict: bool = False) -> list[dict]:
 
 
 def _delta_table(name: str) -> str:
-    """Return fully-qualified Delta table name for a GSO table."""
+    """Return backtick-quoted fully-qualified Delta table name for a GSO table.
+
+    Quoting is required so Unity Catalog catalogs with hyphens (or other
+    special characters) are parsed as identifiers rather than operators.
+    """
     config = _build_gso_config()
-    return f"{config.catalog}.{config.schema_name}.{name}"
+    return f"`{config.catalog}`.`{config.schema_name}`.`{name}`"
 
 
 # Bug #2 regression (April 2026): `_ITER_COLS_V2` requires columns that
@@ -1497,7 +1501,7 @@ async def get_active_run(space_id: SpaceId):
         runs_df = sql_warehouse_query(
             ws,
             config.warehouse_id,
-            f"SELECT * FROM {config.catalog}.{config.schema_name}.genie_opt_runs "
+            f"SELECT * FROM `{config.catalog}`.`{config.schema_name}`.genie_opt_runs "
             f"WHERE space_id = '{space_id}' ORDER BY started_at DESC",
         )
 
@@ -1511,7 +1515,7 @@ async def get_active_run(space_id: SpaceId):
                 runs_df = sql_warehouse_query(
                     ws,
                     config.warehouse_id,
-                    f"SELECT * FROM {config.catalog}.{config.schema_name}.genie_opt_runs "
+                    f"SELECT * FROM `{config.catalog}`.`{config.schema_name}`.genie_opt_runs "
                     f"WHERE space_id = '{space_id}' ORDER BY started_at DESC",
                 )
 

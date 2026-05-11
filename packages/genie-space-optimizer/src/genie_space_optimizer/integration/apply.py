@@ -66,7 +66,7 @@ def apply_optimization(
             ws,
             config.warehouse_id,
             f"SELECT run_id, iteration, eval_scope, overall_accuracy "
-            f"FROM {config.catalog}.{config.schema_name}.genie_opt_iterations "
+            f"FROM `{config.catalog}`.`{config.schema_name}`.genie_opt_iterations "
             f"WHERE run_id = '{run_id}' AND eval_scope = 'full' "
             f"ORDER BY iteration ASC",
         )
@@ -94,7 +94,7 @@ def apply_optimization(
     sql_warehouse_execute(
         ws,
         config.warehouse_id,
-        f"UPDATE {config.catalog}.{config.schema_name}.genie_opt_runs "
+        f"UPDATE `{config.catalog}`.`{config.schema_name}`.genie_opt_runs "
         f"SET status = 'APPLIED', updated_at = current_timestamp() "
         f"WHERE run_id = '{run_id}'",
     )

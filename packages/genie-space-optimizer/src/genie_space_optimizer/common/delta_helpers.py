@@ -166,9 +166,19 @@ def _native_df(df: pd.DataFrame) -> pd.DataFrame:
     return df.astype(object).where(df.notna(), None)
 
 
+def _q(ident: str) -> str:
+    """Backtick-quote a single SQL identifier, escaping embedded backticks."""
+    return f"`{ident.replace('`', '``')}`"
+
+
 def _fqn(catalog: str, schema: str, table: str) -> str:
-    """Build a fully-qualified Delta table name."""
-    return f"{catalog}.{schema}.{table}"
+    """Build a backtick-quoted fully-qualified Delta table name.
+
+    Quoting is mandatory: Unity Catalog allows hyphens (and other special
+    characters) in catalog/schema/table names, which Spark parses as
+    operators when unquoted.
+    """
+    return f"{_q(catalog)}.{_q(schema)}.{_q(table)}"
 
 
 def read_table(

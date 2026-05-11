@@ -95,7 +95,7 @@ def trigger_optimization(
     runs_df = sql_warehouse_query(
         ws,
         config.warehouse_id,
-        f"SELECT * FROM {config.catalog}.{config.schema_name}.genie_opt_runs "
+        f"SELECT * FROM `{config.catalog}`.`{config.schema_name}`.genie_opt_runs "
         f"WHERE space_id = '{space_id}' ORDER BY started_at DESC",
     )
 
@@ -107,7 +107,7 @@ def trigger_optimization(
             runs_df = sql_warehouse_query(
                 ws,
                 config.warehouse_id,
-                f"SELECT * FROM {config.catalog}.{config.schema_name}.genie_opt_runs "
+                f"SELECT * FROM `{config.catalog}`.`{config.schema_name}`.genie_opt_runs "
                 f"WHERE space_id = '{space_id}' ORDER BY started_at DESC",
             )
 
@@ -233,7 +233,7 @@ def trigger_optimization(
         sql_warehouse_execute(
             ws,
             config.warehouse_id,
-            f"UPDATE {config.catalog}.{config.schema_name}.genie_opt_runs "
+            f"UPDATE `{config.catalog}`.`{config.schema_name}`.genie_opt_runs "
             f"SET status = 'IN_PROGRESS', job_run_id = '{job_run_id}', "
             f"job_id = '{job_id}', "
             f"updated_at = current_timestamp() "
@@ -267,7 +267,7 @@ def trigger_optimization(
             sql_warehouse_execute(
                 ws,
                 config.warehouse_id,
-                f"UPDATE {config.catalog}.{config.schema_name}.genie_opt_runs "
+                f"UPDATE `{config.catalog}`.`{config.schema_name}`.genie_opt_runs "
                 f"SET status = 'FAILED', "
                 f"convergence_reason = 'job_submission_error: {str(exc)[:500]}', "
                 f"updated_at = current_timestamp() "
