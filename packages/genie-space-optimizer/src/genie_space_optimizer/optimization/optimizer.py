@@ -5354,7 +5354,7 @@ def read_asi_from_uc(
     schema: str,
 ) -> list[dict]:
     """Query ``genie_eval_asi_results`` Delta table via Spark."""
-    table = f"{catalog}.{schema}.genie_eval_asi_results"
+    table = f"`{catalog}`.`{schema}`.genie_eval_asi_results"
     try:
         df = spark.sql(
             f"""

@@ -73,7 +73,7 @@ def discard_optimization(
     sql_warehouse_execute(
         ws,
         config.warehouse_id,
-        f"UPDATE {config.catalog}.{config.schema_name}.genie_opt_runs "
+        f"UPDATE `{config.catalog}`.`{config.schema_name}`.genie_opt_runs "
         f"SET status = 'DISCARDED', "
         f"convergence_reason = 'user_discarded', "
         f"updated_at = current_timestamp() "

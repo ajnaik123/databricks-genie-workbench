@@ -2826,8 +2826,9 @@ def get_pending_reviews(space_id: str, config: Dependencies.Config) -> PendingRe
         logger.debug("Could not load queued patches", exc_info=True)
 
     try:
+        from genie_space_optimizer.common.delta_helpers import _fqn
         from genie_space_optimizer.optimization.state import run_query
-        fqn = f"{catalog}.{schema}.genie_opt_runs"
+        fqn = _fqn(catalog, schema, "genie_opt_runs")
         df = run_query(
             spark,
             f"SELECT labeling_session_url FROM {fqn} "

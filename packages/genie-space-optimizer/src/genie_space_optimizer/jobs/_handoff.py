@@ -146,7 +146,7 @@ def get_run_context(
         )
 
     delta_query = (
-        f"SELECT * FROM {catalog_widget}.{schema_widget}.genie_opt_runs "
+        f"SELECT * FROM `{catalog_widget}`.`{schema_widget}`.genie_opt_runs "
         f"WHERE run_id = '{bootstrap_run_id}' LIMIT 1"
     )
     run_row = load_run(spark, bootstrap_run_id, catalog_widget, schema_widget)
@@ -267,7 +267,7 @@ def get_baseline_eval_state(
             is available — the baseline never ran.
     """
     delta_query = (
-        f"SELECT * FROM {catalog}.{schema}.genie_opt_iterations "
+        f"SELECT * FROM `{catalog}`.`{schema}`.genie_opt_iterations "
         f"WHERE run_id = '{run_id}' AND iteration = 0 "
         f"AND eval_scope = 'full' LIMIT 1"
     )
@@ -380,7 +380,7 @@ def get_enrichment_state(
     state and does NOT raise.
     """
     delta_query = (
-        f"SELECT * FROM {catalog}.{schema}.genie_opt_iterations "
+        f"SELECT * FROM `{catalog}`.`{schema}`.genie_opt_iterations "
         f"WHERE run_id = '{run_id}' AND eval_scope = 'enrichment' LIMIT 1"
     )
 
@@ -458,7 +458,7 @@ def get_lever_loop_outputs(
 ) -> dict[str, HandoffValue]:
     """Read lever_loop task values, falling back to Delta state."""
     delta_query = (
-        f"SELECT * FROM {catalog}.{schema}.genie_opt_iterations "
+        f"SELECT * FROM `{catalog}`.`{schema}`.genie_opt_iterations "
         f"WHERE run_id = '{run_id}' AND eval_scope = 'full' "
         f"ORDER BY iteration DESC LIMIT 1"
     )

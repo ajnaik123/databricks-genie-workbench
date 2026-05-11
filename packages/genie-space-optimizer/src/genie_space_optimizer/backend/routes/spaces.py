@@ -537,7 +537,7 @@ def get_space_detail(
         domain = re.sub(r"[^a-z0-9_]+", "_", title.lower().replace(" ", "_").replace("-", "_")).strip("_")
         if not domain:
             domain = "default"
-        bench_table = f"{config.catalog}.{config.schema_name}.genie_benchmarks_{domain}"
+        bench_table = f"`{config.catalog}`.`{config.schema_name}`.genie_benchmarks_{domain}"
         bench_df = spark.sql(
             f"SELECT question FROM {bench_table} WHERE question IS NOT NULL ORDER BY question LIMIT 200"
         )
@@ -747,12 +747,13 @@ def do_start_optimization(
         """Convert schema/permission errors into user-friendly 503 responses."""
         exc_str = str(exc)
         fqn = f"{config.catalog}.{config.schema_name}"
+        qfqn = f"`{config.catalog}`.`{config.schema_name}`"
         if "SCHEMA_NOT_FOUND" in exc_str:
             return HTTPException(
                 status_code=503,
                 detail=(
                     f"Schema '{fqn}' does not exist. "
-                    f"Create it with: CREATE SCHEMA IF NOT EXISTS {fqn} — "
+                    f"Create it with: CREATE SCHEMA IF NOT EXISTS {qfqn} — "
                     f"then re-deploy the app."
                 ),
             )
@@ -794,7 +795,7 @@ def do_start_optimization(
                     runs_df = _sql_warehouse_query(
                         ws,
                         config.warehouse_id,
-                        f"SELECT * FROM {config.catalog}.{config.schema_name}.genie_opt_runs "
+                        f"SELECT * FROM `{config.catalog}`.`{config.schema_name}`.genie_opt_runs "
                         f"WHERE space_id = '{space_id}' ORDER BY started_at DESC",
                     )
                 else:
@@ -999,7 +1000,7 @@ def do_start_optimization(
         if use_warehouse_fallback:
             _sql_warehouse_execute(
                 ws, config.warehouse_id,
-                f"UPDATE {config.catalog}.{config.schema_name}.genie_opt_runs "
+                f"UPDATE `{config.catalog}`.`{config.schema_name}`.genie_opt_runs "
                 f"SET status = 'IN_PROGRESS', job_run_id = '{job_run_id}', "
                 f"job_id = '{job_id}', "
                 f"updated_at = current_timestamp() "
@@ -1034,7 +1035,7 @@ def do_start_optimization(
             if use_warehouse_fallback:
                 _sql_warehouse_execute(
                     ws, config.warehouse_id,
-                    f"UPDATE {config.catalog}.{config.schema_name}.genie_opt_runs "
+                    f"UPDATE `{config.catalog}`.`{config.schema_name}`.genie_opt_runs "
                     f"SET status = 'FAILED', "
                     f"convergence_reason = 'job_submission_error: {str(exc)[:500]}', "
                     f"updated_at = current_timestamp() "

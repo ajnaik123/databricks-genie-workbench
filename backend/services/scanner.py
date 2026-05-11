@@ -187,7 +187,7 @@ async def scan_space(space_id: str, user_token: Optional[str] = None) -> dict:
                         df = sql_warehouse_query(
                             ws, wh_id,
                             f"SELECT run_id, space_id, status, best_accuracy, completed_at, started_at "
-                            f"FROM {catalog}.{schema}.genie_opt_runs "
+                            f"FROM `{catalog}`.`{schema}`.genie_opt_runs "
                             f"WHERE space_id = '{space_id}' ORDER BY started_at DESC"
                         )
                         if not df.empty:

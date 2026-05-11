@@ -31,6 +31,7 @@ from genie_space_optimizer.common.config import (
 )
 from genie_space_optimizer.common.delta_helpers import (
     _fqn,
+    _q,
     execute_delta_write_with_retry,
     insert_row,
     is_retryable_delta_write_conflict,
@@ -61,7 +62,7 @@ logger = logging.getLogger(__name__)
 def ensure_optimization_tables(spark: SparkSession, catalog: str, schema: str) -> None:
     """Create all optimization Delta tables if they don't exist (idempotent)."""
     try:
-        spark.sql(f"CREATE SCHEMA IF NOT EXISTS {catalog}.{schema}")
+        spark.sql(f"CREATE SCHEMA IF NOT EXISTS {_q(catalog)}.{_q(schema)}")
     except Exception as exc:
         exc_str = str(exc)
         if "PERMISSION_DENIED" in exc_str or "ACCESS_DENIED" in exc_str:
@@ -74,7 +75,7 @@ def ensure_optimization_tables(spark: SparkSession, catalog: str, schema: str) -
             raise
 
     for name, ddl in _ALL_DDL.items():
-        resolved = ddl.replace("{catalog}", catalog).replace("{schema}", schema)
+        resolved = ddl.replace("{catalog}", _q(catalog)).replace("{schema}", _q(schema))
         try:
             spark.sql(resolved)
             logger.info("  [OK] %s.%s.%s", catalog, schema, name)
