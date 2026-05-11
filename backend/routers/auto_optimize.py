@@ -109,10 +109,15 @@ def _delta_query(sql: str) -> list[dict]:
         return []
 
 
+def _q(ident: str) -> str:
+    """Backtick-quote a UC identifier so hyphens/special chars survive Spark SQL parsing."""
+    return "`" + ident.replace("`", "``") + "`"
+
+
 def _delta_table(name: str) -> str:
-    """Return fully-qualified Delta table name for a GSO table."""
+    """Return fully-qualified, backtick-quoted Delta table name for a GSO table."""
     config = _build_gso_config()
-    return f"{config.catalog}.{config.schema_name}.{name}"
+    return f"{_q(config.catalog)}.{_q(config.schema_name)}.{_q(name)}"
 
 
 def _build_gso_config() -> IntegrationConfig:
@@ -1327,7 +1332,7 @@ async def get_active_run(space_id: SpaceId):
         runs_df = sql_warehouse_query(
             ws,
             config.warehouse_id,
-            f"SELECT * FROM {config.catalog}.{config.schema_name}.genie_opt_runs "
+            f"SELECT * FROM {_q(config.catalog)}.{_q(config.schema_name)}.genie_opt_runs "
             f"WHERE space_id = '{space_id}' ORDER BY started_at DESC",
         )
 
@@ -1341,7 +1346,7 @@ async def get_active_run(space_id: SpaceId):
                 runs_df = sql_warehouse_query(
                     ws,
                     config.warehouse_id,
-                    f"SELECT * FROM {config.catalog}.{config.schema_name}.genie_opt_runs "
+                    f"SELECT * FROM {_q(config.catalog)}.{_q(config.schema_name)}.genie_opt_runs "
                     f"WHERE space_id = '{space_id}' ORDER BY started_at DESC",
                 )
 

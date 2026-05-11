@@ -204,22 +204,25 @@ def fetch_uc_metadata_obo(
     if genie_table_refs:
         return _fetch_uc_metadata_obo_for_tables(ws, warehouse_id=warehouse_id, refs=genie_table_refs)
 
+    from genie_space_optimizer.common.delta_helpers import _q
+
     safe_schema = schema_name.replace("'", "''")
+    _qcat = _q(catalog)
     queries = {
         "uc_columns": (
             "SELECT table_name, column_name, data_type, comment "
-            f"FROM {catalog}.information_schema.columns "
+            f"FROM {_qcat}.information_schema.columns "
             f"WHERE table_schema = '{safe_schema}'"
         ),
         "uc_tags": (
             "SELECT * "
-            f"FROM {catalog}.information_schema.table_tags "
+            f"FROM {_qcat}.information_schema.table_tags "
             f"WHERE schema_name = '{safe_schema}'"
         ),
         "uc_routines": (
             "SELECT routine_name, routine_type, routine_definition, "
             "data_type AS return_type, routine_schema "
-            f"FROM {catalog}.information_schema.routines "
+            f"FROM {_qcat}.information_schema.routines "
             f"WHERE routine_schema = '{safe_schema}'"
         ),
     }
@@ -256,17 +259,19 @@ def _fetch_uc_metadata_obo_for_tables(
         if cat and sch and tbl:
             schema_groups.setdefault((cat, sch), []).append(tbl)
 
+    from genie_space_optimizer.common.delta_helpers import _q
+
     col_unions: list[str] = []
     tag_unions: list[str] = []
     for (cat, sch), tables in schema_groups.items():
         safe_tables = ", ".join(f"'{t.replace(chr(39), chr(39)+chr(39))}'" for t in tables)
         col_unions.append(
             f"SELECT table_name, column_name, data_type, comment "
-            f"FROM {cat}.information_schema.columns "
+            f"FROM {_q(cat)}.information_schema.columns "
             f"WHERE table_schema = '{sch}' AND table_name IN ({safe_tables})"
         )
         tag_unions.append(
-            f"SELECT * FROM {cat}.information_schema.table_tags "
+            f"SELECT * FROM {_q(cat)}.information_schema.table_tags "
             f"WHERE schema_name = '{sch}' AND table_name IN ({safe_tables})"
         )
 
@@ -275,7 +280,7 @@ def _fetch_uc_metadata_obo_for_tables(
         routine_unions.append(
             f"SELECT routine_name, routine_type, routine_definition, "
             f"data_type AS return_type, routine_schema "
-            f"FROM {cat}.INFORMATION_SCHEMA.ROUTINES "
+            f"FROM {_q(cat)}.INFORMATION_SCHEMA.ROUTINES "
             f"WHERE routine_schema = '{sch}'"
         )
 
@@ -536,7 +541,8 @@ def get_space_detail(
         domain = re.sub(r"[^a-z0-9_]+", "_", title.lower().replace(" ", "_").replace("-", "_")).strip("_")
         if not domain:
             domain = "default"
-        bench_table = f"{config.catalog}.{config.schema_name}.genie_benchmarks_{domain}"
+        from genie_space_optimizer.common.delta_helpers import _q
+        bench_table = f"{_q(config.catalog)}.{_q(config.schema_name)}.{_q('genie_benchmarks_' + domain)}"
         bench_df = spark.sql(
             f"SELECT question FROM {bench_table} WHERE question IS NOT NULL ORDER BY question LIMIT 200"
         )
@@ -741,14 +747,16 @@ def do_start_optimization(
 
     def _actionable_setup_error(exc: Exception) -> HTTPException | None:
         """Convert schema/permission errors into user-friendly 503 responses."""
+        from genie_space_optimizer.common.delta_helpers import _q
         exc_str = str(exc)
         fqn = f"{config.catalog}.{config.schema_name}"
+        qfqn = f"{_q(config.catalog)}.{_q(config.schema_name)}"
         if "SCHEMA_NOT_FOUND" in exc_str:
             return HTTPException(
                 status_code=503,
                 detail=(
                     f"Schema '{fqn}' does not exist. "
-                    f"Create it with: CREATE SCHEMA IF NOT EXISTS {fqn} — "
+                    f"Create it with: CREATE SCHEMA IF NOT EXISTS {qfqn} — "
                     f"then re-deploy the app."
                 ),
             )

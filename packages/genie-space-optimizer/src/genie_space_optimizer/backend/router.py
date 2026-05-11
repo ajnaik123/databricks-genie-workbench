@@ -28,9 +28,11 @@ def health_check(config: Dependencies.Config, ws: Dependencies.Client):
     Never raises -- always returns a HealthStatus so the frontend can
     render an actionable banner.
     """
+    from genie_space_optimizer.common.delta_helpers import _q
+
     cat = config.catalog or "main"
     sch = config.schema_name or "genie_optimization"
-    fqn = f"{cat}.{sch}"
+    fqn = f"{_q(cat)}.{_q(sch)}"
 
     sp_client_id = ws.config.client_id or os.getenv("DATABRICKS_CLIENT_ID", "")
     sp_ref = sp_client_id or "<service_principal_application_id>"

@@ -22,6 +22,8 @@ from typing import Any
 
 import mlflow
 
+from genie_space_optimizer.common.delta_helpers import _q
+
 logger = logging.getLogger(__name__)
 
 SCHEMA_JUDGE_VERDICT = "judge_verdict_accuracy"
@@ -554,7 +556,7 @@ def sync_corrections_to_dataset(
 
 
 def _ensure_flagged_questions_table(spark: Any, catalog: str, schema: str) -> None:
-    fqn = f"{catalog}.{schema}.genie_opt_flagged_questions"
+    fqn = f"{_q(catalog)}.{_q(schema)}.genie_opt_flagged_questions"
     try:
         spark.sql(f"""
             CREATE TABLE IF NOT EXISTS {fqn} (
@@ -599,7 +601,7 @@ def flag_for_human_review(
 
     from genie_space_optimizer.optimization.state import run_query
 
-    fqn = f"{catalog}.{schema}.genie_opt_flagged_questions"
+    fqn = f"{_q(catalog)}.{_q(schema)}.genie_opt_flagged_questions"
     _ensure_flagged_questions_table(spark, catalog, schema)
 
     flagged = 0
@@ -665,7 +667,7 @@ def resolve_stale_flags(
         return 0
 
     _ensure_flagged_questions_table(spark, catalog, schema)
-    fqn = f"{catalog}.{schema}.genie_opt_flagged_questions"
+    fqn = f"{_q(catalog)}.{_q(schema)}.genie_opt_flagged_questions"
 
     from datetime import datetime, timezone
     now = datetime.now(timezone.utc).isoformat()
@@ -705,7 +707,7 @@ def get_flagged_questions(
     from genie_space_optimizer.optimization.state import run_query
 
     _ensure_flagged_questions_table(spark, catalog, schema)
-    fqn = f"{catalog}.{schema}.genie_opt_flagged_questions"
+    fqn = f"{_q(catalog)}.{_q(schema)}.genie_opt_flagged_questions"
     try:
         where = f"WHERE domain = '{domain}' AND status = '{status}'"
         if run_id:

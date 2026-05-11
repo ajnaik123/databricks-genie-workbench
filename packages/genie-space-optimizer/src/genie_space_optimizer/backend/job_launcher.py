@@ -88,10 +88,11 @@ def _ensure_volume(ws: WorkspaceClient, catalog: str, schema: str) -> None:
         if "already_exists" in str(exc).lower() or "already exists" in str(exc).lower():
             logger.debug("Volume %s.%s.%s already exists", catalog, schema, _VOLUME_NAME)
         else:
+            from genie_space_optimizer.common.delta_helpers import _q
             raise RuntimeError(
                 f"Could not create volume {catalog}.{schema}.{_VOLUME_NAME}: {exc}. "
                 f"Create it manually with: CREATE VOLUME IF NOT EXISTS "
-                f"{catalog}.{schema}.{_VOLUME_NAME}"
+                f"{_q(catalog)}.{_q(schema)}.{_q(_VOLUME_NAME)}"
             ) from exc
     _volume_ensured = True
 

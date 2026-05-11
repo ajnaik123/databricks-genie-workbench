@@ -86,13 +86,15 @@ def wh_create_run(
     """Insert a QUEUED run row via SQL warehouse."""
     from genie_space_optimizer.common.config import DEFAULT_LEVER_ORDER, MAX_ITERATIONS
 
+    from genie_space_optimizer.common.delta_helpers import _q
+
     snap_json = json.dumps(config_snapshot).replace("'", "''") if config_snapshot else ""
     levers_json = json.dumps(levers if levers is not None else DEFAULT_LEVER_ORDER)
     exp = (experiment_name or "").replace("'", "''")
     user = (triggered_by or "").replace("'", "''")
 
     sql = (
-        f"INSERT INTO {catalog}.{schema}.genie_opt_runs "
+        f"INSERT INTO {_q(catalog)}.{_q(schema)}.genie_opt_runs "
         f"(run_id, space_id, domain, catalog, uc_schema, status, started_at, "
         f"max_iterations, levers, apply_mode, updated_at, "
         f"experiment_name, triggered_by, config_snapshot) VALUES ("
@@ -113,10 +115,12 @@ def wh_load_run(
     schema_name: str,
 ) -> dict | None:
     """Read a single run from Delta via SQL Warehouse."""
+    from genie_space_optimizer.common.delta_helpers import _q
+
     df = sql_warehouse_query(
         ws,
         warehouse_id,
-        f"SELECT * FROM {catalog}.{schema_name}.genie_opt_runs "
+        f"SELECT * FROM {_q(catalog)}.{_q(schema_name)}.genie_opt_runs "
         f"WHERE run_id = '{run_id}'",
     )
     if df.empty:
@@ -143,12 +147,15 @@ def wh_reconcile_active_runs(
     """
     from datetime import datetime, timedelta, timezone
 
+    from genie_space_optimizer.common.delta_helpers import _q
+
     _terminal = terminal_job_states or frozenset({
         "TERMINATED", "SKIPPED", "INTERNAL_ERROR",
     })
     _active = {"QUEUED", "IN_PROGRESS"}
     changed = False
     now = datetime.now(timezone.utc)
+    _runs_fqn = f"{_q(catalog)}.{_q(schema_name)}.genie_opt_runs"
 
     for _, row in runs_df.iterrows():
         status = str(row.get("status") or "")
@@ -177,7 +184,7 @@ def wh_reconcile_active_runs(
                     )
                     sql_warehouse_execute(
                         ws, warehouse_id,
-                        f"UPDATE {catalog}.{schema_name}.genie_opt_runs "
+                        f"UPDATE {_runs_fqn} "
                         f"SET status = 'FAILED', "
                         f"convergence_reason = "
                         f"'job_{life_cycle.lower()}_without_state_update{suffix}', "
@@ -188,7 +195,7 @@ def wh_reconcile_active_runs(
             except Exception:
                 sql_warehouse_execute(
                     ws, warehouse_id,
-                    f"UPDATE {catalog}.{schema_name}.genie_opt_runs "
+                    f"UPDATE {_runs_fqn} "
                     f"SET status = 'FAILED', "
                     f"convergence_reason = 'job_run_lookup_failed', "
                     f"updated_at = current_timestamp() "
@@ -214,7 +221,7 @@ def wh_reconcile_active_runs(
         if started_at and (now - started_at) > timedelta(minutes=stale_queue_minutes):
             sql_warehouse_execute(
                 ws, warehouse_id,
-                f"UPDATE {catalog}.{schema_name}.genie_opt_runs "
+                f"UPDATE {_runs_fqn} "
                 f"SET status = 'FAILED', "
                 f"convergence_reason = 'stale_queued_no_job_run', "
                 f"updated_at = current_timestamp() "

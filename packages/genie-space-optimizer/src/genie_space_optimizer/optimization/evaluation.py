@@ -2000,10 +2000,12 @@ def _try_drop_prompt(fqn: str) -> bool:
         return False
     try:
         from pyspark.sql import SparkSession
+        from genie_space_optimizer.common.delta_helpers import _q
         spark = SparkSession.getActiveSession()
         if spark is None:
             return False
-        spark.sql(f"DROP FUNCTION IF EXISTS {fqn}")
+        quoted = ".".join(_q(p) for p in fqn.split("."))
+        spark.sql(f"DROP FUNCTION IF EXISTS {quoted}")
         logger.info("Dropped stale prompt function %s for re-creation", fqn)
         return True
     except Exception:

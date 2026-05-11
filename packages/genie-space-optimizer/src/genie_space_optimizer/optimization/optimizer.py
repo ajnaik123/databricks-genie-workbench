@@ -2839,7 +2839,8 @@ def read_asi_from_uc(
     schema: str,
 ) -> list[dict]:
     """Query ``genie_eval_asi_results`` Delta table via Spark."""
-    table = f"{catalog}.{schema}.genie_eval_asi_results"
+    from genie_space_optimizer.common.delta_helpers import _q
+    table = f"{_q(catalog)}.{_q(schema)}.genie_eval_asi_results"
     try:
         df = spark.sql(
             f"""

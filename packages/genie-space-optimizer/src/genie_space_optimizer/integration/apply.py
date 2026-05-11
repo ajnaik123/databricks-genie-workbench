@@ -62,11 +62,12 @@ def apply_optimization(
     requested_mode = str(run_data.get("apply_mode") or "genie_config").lower()
 
     if requested_mode in _DEFERRED_UC_MODES:
+        from genie_space_optimizer.common.delta_helpers import _q
         iters_df = sql_warehouse_query(
             ws,
             config.warehouse_id,
             f"SELECT run_id, iteration, eval_scope, overall_accuracy "
-            f"FROM {config.catalog}.{config.schema_name}.genie_opt_iterations "
+            f"FROM {_q(config.catalog)}.{_q(config.schema_name)}.genie_opt_iterations "
             f"WHERE run_id = '{run_id}' AND eval_scope = 'full' "
             f"ORDER BY iteration ASC",
         )

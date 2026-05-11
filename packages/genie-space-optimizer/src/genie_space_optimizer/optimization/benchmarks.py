@@ -209,7 +209,7 @@ def load_benchmarks_from_dataset(
         List of benchmark question dicts with ``question``, ``expected_sql``,
         ``expected_asset``, ``category``, etc.
     """
-    table_name = f"{uc_schema}.genie_benchmarks_{domain}"
+    table_name = _quote_identifier_fqn(f"{uc_schema}.genie_benchmarks_{domain}")
 
     if isinstance(spark_or_dataset, list):
         return spark_or_dataset
@@ -220,7 +220,7 @@ def load_benchmarks_from_dataset(
             for attempt in range(_max_retries):
                 try:
                     from genie_space_optimizer.common.delta_helpers import _safe_refresh
-                    _safe_refresh(spark, _quote_identifier_fqn(table_name))
+                    _safe_refresh(spark, table_name)
                     df = spark.table(table_name)
                     rows = df.collect()
                     benchmarks = [_normalize_benchmark_row(r.asDict(recursive=True)) for r in rows]
@@ -1034,7 +1034,7 @@ def apply_benchmark_corrections(
 
     Returns ``{applied: int, skipped: int, errors: list[str]}``.
     """
-    table_name = f"{uc_schema}.genie_benchmarks_{domain}"
+    table_name = _quote_identifier_fqn(f"{uc_schema}.genie_benchmarks_{domain}")
     applied = 0
     skipped = 0
     errors: list[str] = []
@@ -1158,7 +1158,7 @@ def quarantine_benchmark_question(
 
     Returns ``True`` if the row was updated, ``False`` otherwise.
     """
-    table_name = f"{uc_schema}.genie_benchmarks_{domain}"
+    table_name = _quote_identifier_fqn(f"{uc_schema}.genie_benchmarks_{domain}")
 
     for col, dtype in [("quarantined_at", "TIMESTAMP"), ("quarantine_reason", "STRING")]:
         try:
@@ -1190,7 +1190,7 @@ def get_quarantined_questions(
     domain: str,
 ) -> set[str]:
     """Return the set of question IDs that are currently quarantined."""
-    table_name = f"{uc_schema}.genie_benchmarks_{domain}"
+    table_name = _quote_identifier_fqn(f"{uc_schema}.genie_benchmarks_{domain}")
     try:
         df = spark.sql(
             f"SELECT question_id FROM {table_name} WHERE quarantined_at IS NOT NULL"
