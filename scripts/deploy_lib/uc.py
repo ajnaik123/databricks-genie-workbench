@@ -66,26 +66,31 @@ def sql_exec(w, warehouse_id: str, statement: str, *, timeout: int = 60) -> dict
     return result
 
 
+def _q(ident: str) -> str:
+    """Backtick-quote a SQL identifier so hyphenated UC names parse safely."""
+    return f"`{ident.replace('`', '``')}`"
+
+
 def ensure_schema(w, catalog: str, schema: str, warehouse_id: str) -> None:
     sql_exec(
         w,
         warehouse_id,
         (
-            f"CREATE SCHEMA IF NOT EXISTS {catalog}.{schema} "
+            f"CREATE SCHEMA IF NOT EXISTS {_q(catalog)}.{_q(schema)} "
             "COMMENT 'Genie Space Optimizer state tables, prompts, and benchmarks'"
         ),
     )
 
 
 def ensure_volume(w, catalog: str, schema: str, warehouse_id: str) -> None:
-    sql_exec(w, warehouse_id, f"CREATE VOLUME IF NOT EXISTS {catalog}.{schema}.app_artifacts")
+    sql_exec(w, warehouse_id, f"CREATE VOLUME IF NOT EXISTS {_q(catalog)}.{_q(schema)}.app_artifacts")
 
 
 def ensure_tables(w, catalog: str, schema: str, warehouse_id: str) -> None:
     from genie_space_optimizer.optimization.ddl import _ALL_DDL
 
     for table_name, ddl_template in _ALL_DDL.items():
-        stmt = ddl_template.replace("{catalog}", catalog).replace("{schema}", schema)
+        stmt = ddl_template.replace("{catalog}", _q(catalog)).replace("{schema}", _q(schema))
         sql_exec(w, warehouse_id, stmt)
         enable_change_data_feed(w, catalog, schema, table_name, warehouse_id)
 
@@ -101,7 +106,7 @@ def enable_change_data_feed(
         sql_exec(
             w,
             warehouse_id,
-            f"ALTER TABLE {catalog}.{schema}.{table} SET TBLPROPERTIES (delta.enableChangeDataFeed = true)",
+            f"ALTER TABLE {_q(catalog)}.{_q(schema)}.{_q(table)} SET TBLPROPERTIES (delta.enableChangeDataFeed = true)",
         )
     except Exception:
         # CDF helps downstream syncs but should not block first install.

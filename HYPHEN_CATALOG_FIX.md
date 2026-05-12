@@ -50,6 +50,15 @@ Inconsistent quoting across the codebase. A handful of sites use existing helper
 | `backend/routers/auto_optimize.py` | 127–130, 1500, 1514 | Updated `_delta_table()` to return a backtick-quoted FQN and quoted both `genie_opt_runs` SELECTs in the SQL-warehouse fallback. |
 | `backend/services/scanner.py` | 190 | Quoted the GSO Delta fallback SELECT (`SELECT run_id, space_id, status, …`). |
 
+### 4. Deploy-time scripts (run locally before workspace deploy)
+
+These are invoked by `make deploy` / `scripts/install.sh` and execute via the SQL Statement Execution API against the target warehouse. Missed in the original v2 audit because the audit scoped to runtime package code; surfaced when first-time deploy against `dev-amer-geniepoc-catalog` failed on `CREATE SCHEMA`.
+
+| File | Sites | Change |
+|---|---|---|
+| `scripts/deploy_lib/uc.py` | 69, 74, 80, 81, 88, 104 | Added local `_q()` helper. Quoted `ensure_schema` CREATE SCHEMA, `ensure_volume` CREATE VOLUME, `ensure_tables` `_ALL_DDL` substitution, and `enable_change_data_feed` ALTER TABLE. |
+| `scripts/grant_permissions.py` | 28, 97, 121, 174, 190 | Added local `_q()` helper. Quoted `_ensure_schema` CREATE SCHEMA, `_ensure_volume` CREATE VOLUME, `_ensure_tables` `_ALL_DDL` substitution, and CDF ALTER TABLE statement. REST-API call sites (`_update_grants(full_name=...)`, `_get_grants(full_name=...)`) intentionally left unquoted — those are SDK args, not SQL. |
+
 ## Deliberately NOT Modified
 
 These look like FQNs but are not SQL identifiers in their respective contexts:
@@ -66,8 +75,8 @@ These look like FQNs but are not SQL identifiers in their respective contexts:
 
 ## Validation
 
-- All 18 patched files pass `python3 -m py_compile`.
-- Working-tree diff: **+85 / -61 lines** across 18 files.
+- All patched files pass `python3 -m py_compile` (18 runtime + 2 deploy-time).
+- Confirmed end-to-end against catalog `dev-amer-geniepoc-catalog`, schema `genie_workbench_abhi` — install completes, optimizer creates run successfully.
 
 ## Deploy Procedure
 

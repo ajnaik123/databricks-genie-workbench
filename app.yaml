@@ -91,7 +91,7 @@ env:
   - name: GSO_CATALOG
     value: "__GSO_CATALOG__"
   - name: GSO_SCHEMA
-    value: "genie_space_optimizer"
+    value: "genie_workbench_abhi"
   - name: GSO_JOB_ID
     value: "__GSO_JOB_ID__"
   - name: GSO_WAREHOUSE_ID

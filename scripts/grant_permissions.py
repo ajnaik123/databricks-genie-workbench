@@ -25,6 +25,11 @@ _GSO_SRC = os.path.join(_SCRIPT_DIR, os.pardir, "packages", "genie-space-optimiz
 if os.path.isdir(_GSO_SRC) and _GSO_SRC not in sys.path:
     sys.path.insert(0, os.path.abspath(_GSO_SRC))
 
+def _q(ident: str) -> str:
+    """Backtick-quote a SQL identifier so hyphenated UC names parse safely."""
+    return f"`{ident.replace('`', '``')}`"
+
+
 # SP privileges on the GSO optimization schema — the SP runs optimization jobs
 # and needs full write access to state tables, MLflow models, and prompts.
 SP_CATALOG_PRIVILEGES = {"USE_CATALOG"}
@@ -94,7 +99,7 @@ def _ensure_schema(*, profile: str, catalog: str, schema: str, warehouse_id: str
     """Create the optimization schema if it doesn't exist."""
     schema_fqn = f"{catalog}.{schema}"
     stmt = (
-        f"CREATE SCHEMA IF NOT EXISTS {schema_fqn} "
+        f"CREATE SCHEMA IF NOT EXISTS {_q(catalog)}.{_q(schema)} "
         f"COMMENT 'Genie Space Optimizer state tables, prompts, and benchmarks'"
     )
     payload = json.dumps({
@@ -118,7 +123,7 @@ def _ensure_schema(*, profile: str, catalog: str, schema: str, warehouse_id: str
 def _ensure_volume(*, profile: str, catalog: str, schema: str, warehouse_id: str) -> None:
     """Create the managed artifact volume if it doesn't exist."""
     vol_fqn = f"{catalog}.{schema}.app_artifacts"
-    stmt = f"CREATE VOLUME IF NOT EXISTS {vol_fqn}"
+    stmt = f"CREATE VOLUME IF NOT EXISTS {_q(catalog)}.{_q(schema)}.app_artifacts"
     payload = json.dumps({
         "warehouse_id": warehouse_id,
         "statement": stmt,
@@ -171,7 +176,7 @@ def _ensure_tables(*, profile: str, catalog: str, schema: str, warehouse_id: str
 
     failed: list[str] = []
     for table_name, ddl_template in _ALL_DDL.items():
-        stmt = ddl_template.replace("{catalog}", catalog).replace("{schema}", schema)
+        stmt = ddl_template.replace("{catalog}", _q(catalog)).replace("{schema}", _q(schema))
         result = _sql_exec(
             profile=profile, warehouse_id=warehouse_id, statement=stmt,
         )
@@ -187,7 +192,7 @@ def _ensure_tables(*, profile: str, catalog: str, schema: str, warehouse_id: str
         else:
             print(f"[grant-permissions] Table ensured: {catalog}.{schema}.{table_name}")
             cdf_stmt = (
-                f"ALTER TABLE {catalog}.{schema}.{table_name} "
+                f"ALTER TABLE {_q(catalog)}.{_q(schema)}.{_q(table_name)} "
                 f"SET TBLPROPERTIES (delta.enableChangeDataFeed = true)"
             )
             cdf_result = _sql_exec(
